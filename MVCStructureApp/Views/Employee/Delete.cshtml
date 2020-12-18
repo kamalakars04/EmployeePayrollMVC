@@ -1,4 +1,4 @@
-﻿@model MVCStructureApp.Models.Common.EmployeeViewModel
+﻿@model MVCStructureApp.Models.Common.RegisterRequestModel
 
 @{
     ViewBag.Title = "Delete";
@@ -36,11 +36,14 @@
         </dd>
 
         <dt>
-            @Html.DisplayNameFor(model => model.Amount)
+            @Html.DisplayNameFor(model => model.Salary)
         </dt>
 
         <dd>
-            @Html.DisplayFor(model => model.Amount)
+            @{ 
+                string salary = Model.salaries.Where(x => x.SalaryId.ToString() == Model.Salary).Select(x => x.Amount).FirstOrDefault();
+            }
+            @Html.DisplayFor(model => salary)
         </dd>
 
         <dt>

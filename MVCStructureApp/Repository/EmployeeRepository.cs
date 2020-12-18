@@ -56,13 +56,20 @@ namespace MVCStructureApp.Repository
                 throw e;
             }
         }
-        public EmployeeViewModel GetEmployee(int id)
+        public RegisterRequestModel GetEmployee(int id)
         {
             try
             {
-                EmployeeViewModel list = GetEmployees().Where(x => x.EmpId == id).SingleOrDefault();
-
-                return list;
+                EmployeeViewModel emp = GetEmployees().Where(x => x.EmpId == id).SingleOrDefault();
+                RegisterRequestModel register = new RegisterRequestModel();
+                register.Name = emp.Name;
+                register.EmpId = emp.EmpId;
+                register.Gender = emp.Gender;
+                register.Department = emp.Department;
+                register.Salary = emp.SalaryId.ToString();
+                register.Description = emp.Description;
+                register.StartDate = emp.StartDate;
+                return register;
             }
             catch (Exception e)
             {

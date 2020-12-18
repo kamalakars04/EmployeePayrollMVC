@@ -63,17 +63,10 @@ namespace MVCStructureApp.Controllers
         /// <returns></returns>
         public ActionResult Edit(RegisterRequestModel model)
         {
-            EmployeeViewModel emp = employeeRepository.GetEmployee(model.EmpId);
-            RegisterRequestModel register = new RegisterRequestModel();
-            register.Name = emp.Name;
-            register.EmpId = emp.EmpId;
-            register.Gender = emp.Gender;
-            register.Department = emp.Department;
-            register.Salary = emp.SalaryId.ToString();
-            register.Description = emp.Description;
-            register.StartDate = emp.StartDate;
+            RegisterRequestModel emp = employeeRepository.GetEmployee(model.EmpId);
+            
             ModelState.Clear();
-            return View("RegisterEmployee",register);
+            return View("RegisterEmployee",emp);
         }
 
         /// <summary>
@@ -83,7 +76,7 @@ namespace MVCStructureApp.Controllers
         /// <returns></returns>
         public ActionResult delete(Employee model)
         {
-            EmployeeViewModel emp = employeeRepository.GetEmployee(model.EmpId);
+            RegisterRequestModel emp = employeeRepository.GetEmployee(model.EmpId);
             return View(emp);
         }
 
