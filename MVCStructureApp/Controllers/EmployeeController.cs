@@ -1,36 +1,52 @@
 ﻿using MVCStructureApp.Models;
 using MVCStructureApp.Models.Common;
-using MVCStructureApp.Repository;
 using System;
 using System.Collections.Generic;
+using System.Collections;
 using System.Linq;
+using System.Net.Http;
 using System.Web;
 using System.Web.Mvc;
+
 
 namespace MVCStructureApp.Controllers
 {
     public class EmployeeController : Controller
     {
-        EmployeeRepository employeeRepository = new EmployeeRepository();
-
         /// <summary>
         /// Register employee action method to redirect to register page
         /// </summary>
         /// <returns></returns>
         public ActionResult RegisterEmployee()
         {
-            return View(new RegisterRequestModel());
-        }
+            try
+            {
+                // Create a connection with web api
+                using (var client = new HttpClient())
+                {
+                    client.BaseAddress = new Uri("http://localhost:63688/api/");
 
-        /// <summary>
-        /// Index action method to redirect to index page 
-        /// </summary>
-        /// <returns></returns>
-        // GET: Employee
-        public ActionResult Index()
-        {
-            List<EmployeeViewModel> list = employeeRepository.GetEmployees();
-            return View(list);
+                    //HTTP GET
+                    var responseTask = client.GetAsync("Employee/GetRegisterRequestModel");
+                    responseTask.Wait();
+
+                    var apiResponse = responseTask.Result;
+                    if (apiResponse.IsSuccessStatusCode)
+                    {
+                        // If success return register employee view with register request model
+                        var model = apiResponse.Content.ReadAsAsync<RegisterRequestModel>().Result;
+                        return View(model);
+                    }
+                    else
+                    {
+                        throw new Exception("No result found");
+                    }
+                }
+            }
+            catch(Exception e)
+            {
+                throw e;
+            }
         }
 
         /// <summary>
@@ -41,21 +57,86 @@ namespace MVCStructureApp.Controllers
         [HttpPost]
         public ActionResult RegisterEmployee(RegisterRequestModel employee)
         {
-            if (Request.Form["Update"] != null)
-                return RedirectToAction("Update",employee);
-            bool result = false;
+            // If model state is valid then link with web api
+            // Else return Register employee view with the object
             if (ModelState.IsValid)
             {
-                result = employeeRepository.RegisterEmployee(employee);
-            }
-            ModelState.Clear();
-            if (result == true)
-            {
-                return RedirectToAction("Index");
+                try
+                {
+                    // If the update button is pressed thrn redirect to update action method
+                    if (Request.Form["Update"] != null)
+                    {
+                        // Temp data is used to transfer data between action methods
+                        TempData["model"] = employee;
+                        return RedirectToAction("Update", "Employee");
+                    }
+
+                    // Connect with webapi and post as new employee
+                    using (var client = new HttpClient())
+                    {
+                        client.BaseAddress = new Uri("http://localhost:63688/api/");
+
+                        //HTTP Post
+                        var responseTask = client.PostAsJsonAsync("Employee", employee);
+                        responseTask.Wait();
+                        var apiResponse = responseTask.Result;
+
+                        // If the post action is success then return to index action method
+                        // Else return to register page with error message
+                        if (apiResponse.IsSuccessStatusCode)
+                        {
+                            return RedirectToAction("Index");
+                        }
+                        else
+                        {
+                            throw new Exception(apiResponse.StatusCode.ToString());
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    ViewData.Add("Fail", "Registration failed, contact administrator"+e);
+                    return View("Error");
+                }
             }
             return View(employee);
         }
-        
+
+        /// <summary>
+        /// Index action method to redirect to index page 
+        /// </summary>
+        /// <returns></returns>
+        // GET: Employee
+        public ActionResult Index()
+        {
+            try
+            {
+                using (var client = new HttpClient())
+                {
+                    client.BaseAddress = new Uri("http://localhost:63688/api/");
+
+                    //HTTP GET
+                    var responseTask = client.GetAsync("Employee/GetEmployees");
+                    responseTask.Wait();
+
+                    var apiResponse = responseTask.Result;
+                    if (apiResponse.IsSuccessStatusCode)
+                    {
+                        var model = apiResponse.Content.ReadAsAsync<IList<EmployeeViewModel>>().Result;
+                        return View(model);
+                    }
+                    else
+                    {
+                        throw new Exception(apiResponse.StatusCode.ToString());
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                throw e;
+            }
+        }
+
         /// <summary>
         /// Edit action method to redirect from index page to update page
         /// </summary>
@@ -63,10 +144,66 @@ namespace MVCStructureApp.Controllers
         /// <returns></returns>
         public ActionResult Edit(RegisterRequestModel model)
         {
-            RegisterRequestModel emp = employeeRepository.GetEmployee(model.EmpId);
-            
-            ModelState.Clear();
-            return View("RegisterEmployee",emp);
+            try
+            {
+                // Connect with web api to get the details of employee to be updated
+                using (var client = new HttpClient())
+                {
+                    client.BaseAddress = new Uri("http://localhost:63688/api/");
+
+                    //HTTP GET
+                    var responseTask = client.GetAsync("Employee/GetEmployee/"+ model.EmpId);
+                    responseTask.Wait();
+                    var apiResponse = responseTask.Result;
+
+                    // If the employee exists then  read the object and direct to register employee page 
+                    // with pre-filled details
+                    if (apiResponse.IsSuccessStatusCode)
+                    {
+                        var emp = apiResponse.Content.ReadAsAsync<RegisterRequestModel>().Result;
+                        ModelState.Clear();
+                        return View("RegisterEmployee", emp);
+                    }
+                    else
+                    {
+                        throw new Exception(apiResponse.StatusCode.ToString());
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                ViewData.Add("Fail", "Update failed, contact administrator"+e);
+                return View("Error");
+            }
+        }
+
+        /// <summary>
+        /// Update method called from view to store the updated changes
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        public ActionResult Update(RegisterRequestModel model = null)
+        {
+            try
+            {
+                // Fetch the updated employee details from temp data
+                model = TempData["model"] as RegisterRequestModel;
+                using (var client = new HttpClient())
+                {
+                    client.BaseAddress = new Uri("http://localhost:63688/api/");
+
+                    //HTTP Put
+                    var responseTask = client.PutAsJsonAsync("Employee", model);
+                    responseTask.Wait();
+                    var apiResponse = responseTask.Result;
+                    return RedirectToAction("Index");
+                }
+            }
+            catch (Exception e)
+            {
+                ViewData.Add("Fail", "Update failed, contact administrator"+e);
+                return View("Error");
+            }
         }
 
         /// <summary>
@@ -74,10 +211,39 @@ namespace MVCStructureApp.Controllers
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
-        public ActionResult delete(Employee model)
+        public ActionResult delete(int empid)
         {
-            RegisterRequestModel emp = employeeRepository.GetEmployee(model.EmpId);
-            return View(emp);
+            try
+            {
+                // Establish a connection with web api
+                using (var client = new HttpClient())
+                {
+                    client.BaseAddress = new Uri("http://localhost:63688/api/");
+
+                    // Send a get request to get the employee details of given empid
+                    //HTTP GET
+                    var responseTask = client.GetAsync("Employee/GetEmployee/" + empid);
+                    responseTask.Wait();
+                    var apiResponse = responseTask.Result;
+
+                    // If employee exists then return to delete view for confirmation
+                    // Else throw an exception
+                    if (apiResponse.IsSuccessStatusCode)
+                    {
+                        var emp = apiResponse.Content.ReadAsAsync<RegisterRequestModel>().Result;
+                        return View(emp);
+                    }
+                    else
+                    {
+                        throw new Exception(apiResponse.StatusCode.ToString());
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                ViewData.Add("Fail", "Update failed, contact administrator"+e);
+                return View("Error");
+            }
         }
 
         /// <summary>
@@ -86,24 +252,36 @@ namespace MVCStructureApp.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost]
-        public ActionResult DeleteEmployee(Employee model)
+        public ActionResult DeleteEmployee(int empId)
         {
-            int result = employeeRepository.DeleteEmployee(model.EmpId);
-            if (result != 0)
-                return RedirectToAction("Index");
-            else
-                return View("Delete",result);
-        }
+            try
+            {
+                using (var client = new HttpClient())
+                {
+                    client.BaseAddress = new Uri("http://localhost:63688/api/");
 
-        /// <summary>
-        /// Update method called from view to store the updated changes
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        public ActionResult Update(RegisterRequestModel model)
-        {
-           int data=employeeRepository.Update(model);
-            return RedirectToAction("Index");
+                    //HTTP Delete
+                    var responseTask = client.DeleteAsync("Employee?id="+ empId);
+                    responseTask.Wait();
+                    var apiResponse = responseTask.Result;
+
+                    // If delete successful then return to index page
+                    // Else return to error page
+                    if (apiResponse.IsSuccessStatusCode)
+                    {
+                        return RedirectToAction("Index");
+                    }
+                    else
+                    {
+                        throw new Exception(apiResponse.StatusCode.ToString());
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                ViewData.Add("Fail", "Update failed, contact administrator"+e);
+                return View("Error");
+            }
         }
     }
 }

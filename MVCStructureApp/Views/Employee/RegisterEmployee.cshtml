@@ -27,7 +27,7 @@
             <header class="header">Employee Payroll form</header>
         </div>
         <div class="form">
-            @Html.HiddenFor(x => x.EmpId)
+            @Html.HiddenFor(x=>x.EmpId)
             @Html.ValidationSummary(true, "", new { @class = "text-danger" })
             <div class="row">
                 <label>Name</label>
@@ -46,7 +46,7 @@
                 Female
             </div>
             @Html.ValidationMessageFor(x => x.Department, "", new { @class = "error" })
-            <div style="display: flex;flex-direction: row;justify-content:flex-start;margin-right: 40;padding-top: 10px;">
+            <div style="display: flex;flex-direction: row;justify-content:flex-start;margin-right: 4px;padding-top: 10px;">
 
                 <label style=" padding: 0px 12px 5px 0px;">Department</label>
                 @Html.RadioButtonFor(x => x.Department, "Computer", new { @id = "Computer", style = "margin: 4px;margin-left: 12px;" })
@@ -63,27 +63,27 @@
             <div class="row">
                 <label>Salary</label>
 
-                    @{
-                        List<SelectListItem> SalaryList = new List<SelectListItem>();
-                    }
-                    @if (Model.salaries != null)
+                @{
+                    List<SelectListItem> SalaryList = new List<SelectListItem>();
+                }
+                @if (Model.salaries != null)
+                {
+                    for (int i = 0; i < Model.salaries.Count; i++)
                     {
-                        foreach (var element in Model.salaries)
+                        @Html.HiddenFor(x => x.salaries[i].Amount)
+                        @Html.HiddenFor(x => x.salaries[i].SalaryId)
+                        if (SalaryList == null)
                         {
-                            if (SalaryList == null)
-                            {
-                                SalaryList = new List<SelectListItem>();
-                            }
-                            SalaryList.Add(new SelectListItem { Text = element.Amount, Value = element.SalaryId.ToString() });
+                            SalaryList = new List<SelectListItem>();
                         }
+                        SalaryList.Add(new SelectListItem { Text = Model.salaries[i].Amount, Value = Model.salaries[i].SalaryId.ToString() });
                     }
-                    @Html.ValidationMessageFor(x => x.Salary, "", new { @class = "error" })
-                    @Html.DropDownListFor(x => x.Salary, SalaryList, "Select Salary", 0)
-
+                }
+                @Html.ValidationMessageFor(x => x.Salary, "", new { @class = "error" })
+                @Html.DropDownListFor(x => x.Salary, SalaryList, "Select Salary", 0)
             </div>
             <div class="row">
                 <label>Start Date</label>
-
                 @Html.ValidationMessageFor(x => x.StartDate, "", new { @class = "error" })
                 @if (Model.StartDate != new DateTime(0001, 01, 01))
                 {
@@ -102,7 +102,7 @@
             {
                 <div class="btnColumn">
                     <button type="submit" class="btn btn-primary">Submit</button>
-                    <button type="reset" class="btn bg-danger">Reset</button>
+                    <a href="@Url.Action("RegisterEmployee", "Employee")" class="btn btn-success">Reset</a>
                     <a href="@Url.Action("Index", "Employee")" class="btn btn-success">Employee List</a>
                 </div>
             }

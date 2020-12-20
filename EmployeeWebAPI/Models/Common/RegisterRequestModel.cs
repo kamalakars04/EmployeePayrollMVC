@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Web;
+using EmployeeWebAPI.Repository;
 
-namespace MVCStructureApp.Models.Common
+namespace EmployeeWebAPI.Models.Common
 {
     public class RegisterRequestModel
     {
@@ -24,13 +25,13 @@ namespace MVCStructureApp.Models.Common
         public string Salary { get; set; }
 
         [Required]
-        [DateRange("01/01/2000")]
+        [DateRange("01/01/2000", ErrorMessage ="Cannot be future date")]
         [DataType(DataType.Date)]
         public DateTime StartDate { get; set; }
 
         public string Description { get; set; }
 
-        public List<SalaryDTO> salaries { get; set; }
+        public List<SalaryDTO> salaries = new EmployeeRepository().GetSalaries();
 
     }
 }
